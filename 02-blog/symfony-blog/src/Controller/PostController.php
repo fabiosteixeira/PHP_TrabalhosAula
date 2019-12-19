@@ -8,13 +8,17 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class PostController{
 
     private EntityManagerInterface $entityManager;
+    private SerializerInterface $serializer; 
 
-    public function __construct(EntityManagerInterface $entityManager){
+    public function __construct(EntityManagerInterface $entityManager, SerializerInterface $serializer){
         $this->entityManager = $entityManager;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -23,8 +27,14 @@ final class PostController{
     public function create(Request $request): Response{
         //$post = new Post("Minha primeira aplicação com Symfony", "Descrição");
         
-        $data = json_decode($request->getContent(), true);
-        $post = new Post($data['title'], $data['description']);
+        //FAZENDO A INCLUSÃO CRIANDO O POST NA MÃO
+        // $data = json_decode($request->getContent(), true);
+        // $post = new Post($data['title'], $data['description']);
+        // $this->entityManager->persist($post);
+        // $this->entityManager->flush();
+
+        //UTILIZANDO O DESERIALIZE
+        $post = $this->serializer->deserialize($request->getContent(), Post::class, 'json');
         $this->entityManager->persist($post);
         $this->entityManager->flush();
 
@@ -38,12 +48,20 @@ final class PostController{
         /**@var Post $post */
         $post = $this->entityManager->getRepository(Post::class)->find($id);
         
-        return JsonResponse::create([
-            'id' => $post->getId(),
-            'title' => $post->title,
-            'description' => $post->description,
-            'createdAt' => $post->getCreatedAt()->format('Y-m-d'),
-        ]);
+        //RETORNANDO O JSON NA MÃO
+        // return JsonResponse::create([
+        //     'id' => $post->getId(),
+        //     'title' => $post->title,
+        //     'description' => $post->description,
+        //     'createdAt' => $post->getCreatedAt()->format('Y-m-d'),
+        // ]);
+
+        //RETORNANDO O JSON UTILIZANDO O SERIALIZER
+        if (null === $post) {
+            throw new NotFoundHttpException('Post não encontrado.');
+        }
+
+        return JsonResponse::fromJsonString($this->serializer->serialize($post, 'json'));
     }
 
     /**
