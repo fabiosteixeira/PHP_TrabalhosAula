@@ -10,15 +10,20 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Exception\ValidationException;
 
 final class PostController{
 
     private EntityManagerInterface $entityManager;
     private SerializerInterface $serializer; 
+    private ValidatorInterface $validator;
 
-    public function __construct(EntityManagerInterface $entityManager, SerializerInterface $serializer){
+    public function __construct(EntityManagerInterface $entityManager, SerializerInterface $serializer, 
+                                ValidatorInterface $validator){
         $this->entityManager = $entityManager;
         $this->serializer = $serializer;
+        $this->validator = $validator;
     }
 
     /**
@@ -35,6 +40,13 @@ final class PostController{
 
         //UTILIZANDO O DESERIALIZE
         $post = $this->serializer->deserialize($request->getContent(), Post::class, 'json');
+
+        //Validando os dados recebidos com o validator
+        $errors = $this->validator->validate($post);
+        if (count($errors)) {
+            throw new ValidationException($errors);
+        }
+
         $this->entityManager->persist($post);
         $this->entityManager->flush();
 
