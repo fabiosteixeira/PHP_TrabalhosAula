@@ -25,7 +25,7 @@ class PostControllerTest extends WebTestCase {
         //Recupera meta informação da entidade Post
         $metadata = $this->em->getClassMetadata(Post::class);
 
-        //Apaga a tabela associada à entidade Post
+        //Apaga a tabela associada à entidade Post  
         $tool->dropSchema([$metadata]);
 
         try {
@@ -37,7 +37,6 @@ class PostControllerTest extends WebTestCase {
     }
 
     public function test_create_post(): void {
-        // $client = static::createClient();
         $this->client->request('POST', '/posts', [], [], [], json_encode([
             'title' => 'Primeiro teste funcional',
             'description' => 'Alguma descrição'
@@ -46,12 +45,19 @@ class PostControllerTest extends WebTestCase {
     }
 
     public function teste_delete_post():void {
-
         $post = new Post("Post de teste", "Teste");
         $this->em->persist($post);
         $this->em->flush();
 
         $this->client->request('DELETE', '/posts/1');
         $this->assertEquals(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function test_create_post_with_invalid_title(): void {
+        $this->client->request('POST', '/posts', [], [], [], json_encode([
+            'title' => 1234,
+            'description' => 'Alguma descrição'
+        ]));
+        $this->assertEquals(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
     }
 }
